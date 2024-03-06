@@ -238,6 +238,34 @@ def estimate_loss():
     NgramLM.train()
     return out
 
+########## TRAINING LOOP ###########
 
+for iter in range(max_iters):
+
+  # every once in a while evaluate the loss on train and val sets
+  if iter % eval_interval == 0 or iter == max_iters - 1:
+      losses = estimate_loss()
+      print(f"step {iter}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
+
+  # get a random batch of data
+  xb, yb = get_batch('train')
+
+  # forward pass
+  logits = NgramLM.forward(xb)
+
+  # Calculate loss
+  Loss = NgramLM.LossFunction(logits,yb)
+
+  #print(NgramLM.channels.weight.grad)
+  #Zero all parameter gradients
+  optimizer.zero_grad(set_to_none=True)
+  #
+  #print(NgramLM.channels.weight.grad)
+
+  # Backward Path to Calculate new grads
+  Loss.backward()
+
+  # Update the weights in embedding
+  optimizer.step()
 
 
