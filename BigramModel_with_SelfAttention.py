@@ -214,4 +214,15 @@ class NgramLanguageModel(nn.Module):
 ############## Creating a Bigram Model (It is named Ngram here though but it is Bigram !!!!!) ###################
 
 
+# Create a Bigram Language Model Object
+NgramLM = NgramLanguageModel()
+
+# print the number of parameters in the model
+print(sum(p.numel() for p in NgramLM.parameters())/1e6, 'M parameters')
+
+# create a PyTorch optimizer
+optimizer = torch.optim.AdamW(NgramLM.parameters(), lr=1e-3)
+
+
+
 
