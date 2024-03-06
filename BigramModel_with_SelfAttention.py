@@ -7,4 +7,8 @@ import torch.nn.functional as F
 with open('input.txt', 'r', encoding='utf-8') as tinyshkspr:
     book = tinyshkspr.read()
 
+r = sorted(set(book))
+chars = ''.join(r)
+# Number of unique characters in the model
+charsize = len(chars)
 
