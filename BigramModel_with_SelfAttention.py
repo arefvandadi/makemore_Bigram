@@ -83,5 +83,82 @@ def get_batch(x):
   yb = torch.stack([data[Batch_start[i]+1:Batch_start[i]+context+1] for i in range(batch_size)])
   return xb, yb
 
+############# Creating a Transformer Block as Seen in Attention is All You Need paper for a Bigram model ###############
 
+# A Class definition for Each Self-Attetion Block
+class Head(nn.Module):
+
+  def __init__(self):
+    super().__init__()
+    self.key = nn.Linear(n_embed,head_size, bias=False)
+    self.query = nn.Linear(n_embed,head_size, bias=False)
+    self.value = nn.Linear(n_embed,head_size, bias=False)
+    self.register_buffer('tril', torch.tril(torch.ones(context, context)))
+    self.dropout = nn.Dropout(dropout)
+
+  def forward(self,x):
+    B,T,C = x.shape
+    k = self.key(x) # Batch (B) X (T)_Entry X head_size (C) --- since This will be applied to the output of token_emb + pos_emb which is Batch (B) X (T)_Entry X n_embed (C)
+    q = self.query(x) # Batch (B) X (T)_Entry X head_size (C) --- since This will be applied to the output of token_emb + pos_emb which is Batch (B) X (T)_Entry X n_embed (C)
+
+    qk = q @ k.transpose(-2,-1) * C**0.5 ## (B ,T ,C) X (B, C, T) = (B, T, T)
+    wei = torch.ones(T,T)
+    wei = q @ k.transpose(-2,-1) * C**-0.5 # (B, T, C) @ (B, C, T) -> (B, T, T)
+    wei = wei.masked_fill(self.tril[:T, :T] == 0, float('-inf')) # (B, T, T)
+    wei = F.softmax(wei, dim=-1) # (B, T, T)
+    wei = self.dropout(wei) # dropout some of the information from previous nodes (I don't know why!!)
+    # perform the weighted aggregation of the values
+    v = self.value(x) # Batch (B) X (T)_Entry X head_size (C) --- since This will be applied to the output of token_emb + pos_emb which is Batch (B) X (T)_Entry X n_embed (C)
+    out = wei @ v # (B, T, T) @ (B, T, C) -> (B, T, C)
+    return out # each head takes n_embed and outputs head_size (C) --> Batch (B) X (T)_Entry X head_size (C)
+
+# A Class definition to Bring Multiple Attention blocks together and create a Multihead Attention Block
+class MultiHeadAttention(nn.Module):
+    """ multiple heads of self-attention in parallel """
+
+    def __init__(self):
+        super().__init__()
+        self.heads = nn.ModuleList([Head() for _ in range(num_heads)])
+        self.proj = nn.Linear(n_embed,n_embed) ## Projection Layer back to the residual path: To me it only helps to match the dimensions to the residual path if different
+        self.dropout = nn.Dropout(dropout) # introducing dropout rigt before it is added back to the residual path
+
+    def forward(self, x):
+        out = torch.cat([h(x) for h in self.heads], dim=-1)
+        out = self.dropout(self.proj(out)) ## Projection Layer back to the residual path: To me it only helps to match the dimensions to the residual path if different
+        return out # outputs n_embed ---> by concatenating all the head_size self-attention Heads outputs
+
+class FeedFoward(nn.Module):
+    """ a simple linear layer followed by a non-linearity """
+
+    def __init__(self):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(n_embed, 4*n_embed), # In Attention is All You Need paper the hidden layers of the Feed Forward are 4 times the input and output (Page 5 of paper)
+            nn.ReLU(),
+            nn.Linear(4*n_embed, n_embed), ## Projection Layer back to the residual path: To me it only helps to match the dimensions to the residual path if different
+            nn.Dropout(dropout) # introducing dropout rigt before it is added back to the residual path
+        )
+
+    def forward(self, x):
+        return self.net(x)
+
+
+class Block(nn.Module):
+    """ Transformer block: communication block (Multi-Head Self Attention) followed by computation blcok (FeedForward) """
+
+    def __init__(self):
+        # n_embd: embedding dimension, n_head: the number of heads we'd like
+        super().__init__()
+        self.sa = MultiHeadAttention()
+        self.ffwd = FeedFoward()
+        self.ln1 = nn.LayerNorm(n_embed)
+        self.ln2 = nn.LayerNorm(n_embed)
+
+    def forward(self, x):
+        x = x + self.sa(self.ln1(x)) ## the addition of x in this argument is Resudial Connection. ## Layer norm is applied before Self Attention
+        x = x + self.ffwd(self.ln2(x)) ## the addition of x in this argument is Resudial Connection ## Layer norm is applied before Feed Forward
+        return x
+#
+#
+#
 
