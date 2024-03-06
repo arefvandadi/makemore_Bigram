@@ -27,3 +27,13 @@ n=len(book_digits)*9//10
 Train_data = book_digits[:n]
 Val_data = book_digits[n:]
 
+# Define a function to grab random batches from either Training or Evaluation data
+def get_batch(x):
+  data = Train_data if x == 'train' else Val_data
+  Batch_start = torch.randint(0, len(data)-context,(batch_size,))
+  xb = torch.stack([data[Batch_start[i]:Batch_start[i]+context] for i in range(batch_size)])
+  yb = torch.stack([data[Batch_start[i]+1:Batch_start[i]+context+1] for i in range(batch_size)])
+  return xb, yb
+
+
+
