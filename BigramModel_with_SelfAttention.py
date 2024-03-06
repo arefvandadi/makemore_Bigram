@@ -223,6 +223,21 @@ print(sum(p.numel() for p in NgramLM.parameters())/1e6, 'M parameters')
 # create a PyTorch optimizer
 optimizer = torch.optim.AdamW(NgramLM.parameters(), lr=1e-3)
 
+@torch.no_grad()
+def estimate_loss():
+    out = {}
+    NgramLM.eval()
+    for split in ['train', 'val']:
+        losses = torch.zeros(eval_iters)
+        for k in range(eval_iters):
+            X, Y = get_batch(split)
+            logits = NgramLM.forward(X)
+            Loss = NgramLM.LossFunction(logits,Y)
+            losses[k] = Loss.item()
+        out[split] = losses.mean()
+    NgramLM.train()
+    return out
+
 
 
 
