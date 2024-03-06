@@ -191,7 +191,7 @@ class NgramLanguageModel(nn.Module):
   def LossFunction(self,logits,random_training_batch_nextChar):
     logits = logits.view(-1,charsize) # we are doing this since Pytorch functinal.cross_entropy function needs Channels to be assigned to the second dimension
     Target = random_training_batch_nextChar.view(-1)
-    Loss = FF.cross_entropy(logits,Target)
+    Loss = F.cross_entropy(logits,Target)
     return Loss
 
   def generate(self, initiator_token, max_new_tokens):
