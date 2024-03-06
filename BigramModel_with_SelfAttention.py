@@ -22,3 +22,8 @@ book_digits_List=encoder(book)
 # Convert Encoded Book from python List to PyTorch Tensor
 book_digits = torch.tensor(book_digits_List)
 
+# Creating Training and Evaluation Data
+n=len(book_digits)*9//10
+Train_data = book_digits[:n]
+Val_data = book_digits[n:]
+
